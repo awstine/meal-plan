@@ -5,6 +5,7 @@ plugins {
     id ("kotlin-kapt")
     id("com.google.dagger.hilt.android")
     id ("kotlin-parcelize")
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -53,6 +54,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.animation.core.lint)
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.firebase.firestore)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

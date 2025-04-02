@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "232717649762",
+    "project_id": "meal-plan-f6e4d",
+    "storage_bucket": "meal-plan-f6e4d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:232717649762:android:73fccc45aff8b532998e3b",
+        "android_client_info": {
+          "package_name": "com.example.mealplanapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXl6nTDKWKGF-bnylp-M5LSGXNZS6CaPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
