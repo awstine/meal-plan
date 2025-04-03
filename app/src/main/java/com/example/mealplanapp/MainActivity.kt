@@ -1,86 +1,143 @@
 package com.example.mealplanapp
 
-import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
+import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.mealplanapp.ui.theme.MealPlanAppTheme
-import com.example.mealplanapp.ui.theme.data2.CategoryScreen
-import com.example.mealplanapp.ui.theme.data2.HealthConditionScreen
-import com.example.mealplanapp.ui.theme.data2.HealthConditionViewModel
-import com.example.mealplanapp.ui.theme.data2.MealDetailScreen
-import com.example.mealplanapp.ui.theme.data2.MealListScreen
-import com.example.mealplanapp.ui.theme.data2.MealPlanScreen
-import com.example.mealplanapp.ui.theme.data2.MealViewModel
+import com.example.mealplanapp.ui.theme.screen.health.AuthViewModel
+import com.example.mealplanapp.ui.theme.screen.health.HealthConditionViewModel
+import com.example.mealplanapp.ui.theme.screen.health.category.CategoryScreen
+import com.example.mealplanapp.ui.theme.screen.health.goalinput.CustomGoalInputScreen
+import com.example.mealplanapp.ui.theme.screen.health.meal.MealDetailScreen
+import com.example.mealplanapp.ui.theme.screen.health.meal.MealListScreen
+import com.example.mealplanapp.ui.theme.screen.health.meal.MealPlanScreen
+import com.example.mealplanapp.ui.theme.screen.health.meal.MealViewModel
+import com.example.mealplanapp.ui.theme.screen.health.savedMeals.SavedMealsScreen
+import com.example.mealplanapp.ui.theme.screen.health.signin.SignInScreen
+import com.example.mealplanapp.ui.theme.screen.health.signup.SignUpScreen
+import dagger.hilt.android.AndroidEntryPoint
 
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MealPlanAppTheme {
-                val viewModel: MealViewModel = viewModel()
                 val navController = rememberNavController()
 
                 NavHost(
                     navController = navController,
-                    startDestination = "health_condition",
+                    startDestination = "signUp"
                 ) {
+                    // Authentication Flow
+                    composable("signIn") {
+                        SignInScreen(
+                            onSignInComplete = {
+                                navController.navigate("meal_plan") {
+                                    popUpTo("signIn") { inclusive = true }
+                                }
+                            },
+                            onNavigateToSignUp = {
+                                navController.navigate("signUp")
+                            }
+                        )
+                    }
+
+                    composable("signUp") {
+                        val viewModel: AuthViewModel = hiltViewModel()
+                        SignUpScreen(
+                            viewModel = viewModel,
+                            onSignUpComplete = {
+                                navController.navigate("meal_plan") {
+                                    popUpTo("signUp") { inclusive = true }
+                                }
+                            },
+                            onNavigateToSignIn = {
+                                navController.navigate("signIn") {
+                                    popUpTo("signUp") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // Main App Flow
+                    composable("meal_plan") {
+                        val viewModel: HealthConditionViewModel = hiltViewModel()
+                        MealPlanScreen(
+                            navController = navController,
+                            viewModel = viewModel
+                        )
+                    }
+
+                    composable("customGoal") { navBackStackEntry ->
+                        val parentEntry = remember(navBackStackEntry) {
+                            navController.getBackStackEntry("meal_plan")
+                        }
+
+                        val viewModel: HealthConditionViewModel = hiltViewModel(parentEntry)
+                        // ... use the viewModel
+                        CustomGoalInputScreen(
+                            navController = navController,
+                            viewModel = viewModel
+                        )
+                    }
+
+                    composable("savedMeals") {
+                        val viewModel: HealthConditionViewModel = hiltViewModel()
+                        SavedMealsScreen(
+                            navController = navController,
+                            viewModel = viewModel
+                        )
+                    }
+
+                    // Meal Exploration Flow
                     composable("categories") {
+                        val viewModel: MealViewModel = hiltViewModel()
                         CategoryScreen(
                             categories = viewModel.getCategories(),
                             onCategorySelected = { category ->
-                                viewModel.loadMealsByCategory(category)
                                 navController.navigate("meals/$category")
                             }
                         )
                     }
 
                     composable("meals/{category}") { backStackEntry ->
+                        val viewModel: MealViewModel = hiltViewModel()
                         val category = backStackEntry.arguments?.getString("category") ?: ""
+                        viewModel.loadMealsByCategory(category)
+
                         MealListScreen(
-                            navController,
+                            navController = navController,
                             meals = viewModel.meals.collectAsState().value,
                             onMealSelected = { mealId ->
-                                viewModel.loadMealById(mealId)
                                 navController.navigate("meal_detail/$mealId")
                             }
                         )
                     }
 
                     composable("meal_detail/{mealId}") { backStackEntry ->
-                        val mealId = backStackEntry.arguments?.getString("mealId")?.toIntOrNull() ?: 0
+                        val viewModel: MealViewModel = hiltViewModel()
+                        val mealId =
+                            backStackEntry.arguments?.getString("mealId")?.toIntOrNull() ?: 0
+                        viewModel.loadMealById(mealId)
+
                         MealDetailScreen(
                             navController = navController,
                             mealId = mealId,
-                            viewModel()
+                            viewModel = viewModel
                         )
-                    }
-
-                    composable("health_condition") {
-                        HealthConditionScreen(
-                            viewModel = HealthConditionViewModel(application = Application())
-                        )
-                    }
-
-                    composable("meal_plan") {
-                        MealPlanScreen(navController, viewModel)
                     }
                 }
             }
         }
     }
 }
+
+
