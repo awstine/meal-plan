@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStreamReader
 import javax.inject.Inject
 
@@ -64,37 +65,35 @@ class HealthConditionViewModel @Inject constructor(
                         generateMuscleGainMealPlan(meals)
                     else -> generateBalancedMealPlan(meals)
                 }
+            } catch (ioException: IOException) {
+                // Handle CSV loading errors
+                Log.e("MealPlanDebug", "Error loading CSV", ioException)
+                _mealPlan.value = MealPlan(
+                    breakfast = "Error loading meals" to "",
+                    lunch = "Error loading meals" to "",
+                    supper = "Error loading meals" to ""
+                )
             } catch (e: Exception) {
-                // ... error handling ...
+                // Handle other unexpected errors
+                Log.e("MealPlanDebug", "Unexpected error in generating meal plan", e)
+                _mealPlan.value = MealPlan(
+                    breakfast = "Error loading meals" to "",
+                    lunch = "Error loading meals" to "",
+                    supper = "Error loading meals" to ""
+                )
             }
         }
     }
 
-    fun generateWeightLossMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        // ... your logic to generate a weight loss meal plan ...
-        return MealPlan(breakfast = "..." to " ", lunch = "..." to "", supper = "..." to "")
-    }
 
-    fun generateWeightGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        // ... your logic to generate a weight gain meal plan ...
-        return MealPlan(breakfast = "..." to " ", lunch = "..." to "", supper = "..." to "")
-    }
-
-    fun generateMuscleGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        // ... your logic to generate a muscle gain meal plan ...
-        return MealPlan(breakfast = "..." to " ", lunch = "..." to "", supper = "..." to "")
-    }
-
-    fun generateBalancedMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        // ... your logic to generate a balanced meal plan ...
-        return MealPlan(breakfast = "..." to " ", lunch = "..." to "", supper = "..." to "")
-    }
-
-
-
+// Similarly update other generation functions
 
     init {
         loadInitialMealPlan()
+    }
+
+    init {
+        generateMealPlan()
     }
 
     private fun loadInitialMealPlan() {
@@ -103,17 +102,46 @@ class HealthConditionViewModel @Inject constructor(
         }
     }
 
-    private fun selectRandomMeals(
-        meals: Map<String, List<Pair<String, String>>>, // Updated to store (Meal Name, Ingredients)
+    private fun selectRandomMeal(
+        meals: Map<String, List<Pair<String, String>>>,
         categories: List<String>
     ): Pair<String, String> {
-        val selectedMeal = categories
-            .flatMap { meals[it] ?: emptyList() }
-            .shuffled()
-            .firstOrNull() ?: ("No meal found" to "")
-
-        return selectedMeal
+        return categories.flatMap { meals[it] ?: emptyList() }.randomOrNull() ?: ("No meal found" to "")
     }
+
+    fun generateWeightGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
+        return MealPlan(
+            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
+            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian")),
+            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
+        )
+    }
+
+    fun generateMuscleGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
+        return MealPlan(
+            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
+            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian")),
+            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
+        )
+    }
+
+    fun generateBalancedMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
+        return MealPlan(
+            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
+            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian", "Salad")),
+            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
+        )
+    }
+    fun generateWeightLossMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
+        return MealPlan(
+            breakfast = selectRandomMeal(meals, listOf("Snack", "Beverage")),
+            lunch = selectRandomMeal(meals, listOf("Vegetarian", "Salad")),
+            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood"))
+        )
+    }
+
+
+
 
     private suspend fun loadMealsFromCSV(): Map<String, List<Pair<String, String>>> =
         withContext(Dispatchers.IO) {
@@ -169,17 +197,24 @@ class HealthConditionViewModel @Inject constructor(
 
     fun saveCurrentMealPlan() {
         viewModelScope.launch(Dispatchers.IO) {
-            val current = mealPlan.value
-            val savedMealPlan = SavedMealPlan(
-                breakfastName = current.breakfast.first,
-                breakfastIngredients = current.breakfast.second,
-                lunchName = current.lunch.first,
-                lunchIngredients = current.lunch.second,
-                supperName = current.supper.first,
-                supperIngredients = current.supper.second
-            )
-            mealPlanDao.insert(savedMealPlan)
-            showToast("Meal plan saved successfully!")
+            try {
+                val current = mealPlan.value
+                val savedMealPlan = SavedMealPlan(
+                    breakfastName = current.breakfast.first,
+                    breakfastIngredients = current.breakfast.second,
+                    lunchName = current.lunch.first,
+                    lunchIngredients = current.lunch.second,
+                    supperName = current.supper.first,
+                    supperIngredients = current.supper.second,
+                    date = System.currentTimeMillis()
+                )
+                mealPlanDao.insert(savedMealPlan)
+                Log.d("MealPlanDebug", "Saved meal plan: $savedMealPlan")
+                showToast("Meal plan saved successfully!")
+            } catch (e: Exception) {
+                Log.e("MealPlanDebug", "Error saving meal plan", e)
+                showToast("Error saving meal plan")
+            }
         }
     }
 
