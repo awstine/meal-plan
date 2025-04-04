@@ -4,22 +4,22 @@ package com.example.mealplanapp.ui.theme.data2
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import java.util.Date
-
-//class Converters {
-//    @TypeConverter
-//    fun fromTimestamp(value: Long?): Date? {
-//        return value?.let { Date(it) }
-//    }
-//
-//    @TypeConverter
-//    fun dateToTimestamp(date: Date?): Long? {
-//        return date?.time
-//    }
-//}
+import javax.inject.Inject
 
 
-@ProvidedTypeConverter
-class Converters {
+class Converters @Inject constructor() {
+    // Your converter methods here...
+    // Example:
+    @TypeConverter
+    fun fromTimestamp(value: Long?): Date? {
+        return value?.let { Date(it) }
+    }
+
+    @TypeConverter
+    fun dateToTimestamp(date: Date?): Long? {
+        return date?.time
+    }
+
     @TypeConverter
     fun fromList(value: List<String>): String {
         return value.joinToString(",")
