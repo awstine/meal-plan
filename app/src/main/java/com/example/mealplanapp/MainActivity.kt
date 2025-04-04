@@ -68,8 +68,8 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Main App Flow
-                    composable("meal_plan") {
-                        val viewModel: HealthConditionViewModel = hiltViewModel()
+                    composable("meal_plan") { navBackStackEntry ->
+                        val viewModel: HealthConditionViewModel = hiltViewModel(navBackStackEntry)
                         MealPlanScreen(
                             navController = navController,
                             viewModel = viewModel
@@ -89,8 +89,11 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable("savedMeals") {
-                        val viewModel: HealthConditionViewModel = hiltViewModel()
+                    composable("savedMeals") { navBackStackEntry ->
+                        val parentEntry = remember(navBackStackEntry) {
+                            navController.getBackStackEntry("meal_plan")
+                        }
+                        val viewModel: HealthConditionViewModel = hiltViewModel(parentEntry)
                         SavedMealsScreen(
                             navController = navController,
                             viewModel = viewModel
