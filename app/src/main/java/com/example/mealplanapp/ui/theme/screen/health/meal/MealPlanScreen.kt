@@ -1,5 +1,7 @@
 package com.example.mealplanapp.ui.theme.screen.health.meal
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,10 +23,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,6 +45,17 @@ fun MealPlanScreen(
 ) {
     val mealPlan by viewModel.mealPlan
     val customGoal by viewModel.customGoal
+    val toastMessage by viewModel.toastMessage // Observe the toast message state
+
+// Get context for showing Toast
+    val context = LocalContext.current
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearToast() // Clear the message after showing
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -83,7 +98,10 @@ fun MealPlanScreen(
                 modifier = Modifier.padding(vertical = 16.dp)
             )
             Button(
-                onClick = { navController.navigate("customGoal") },
+                onClick = {
+                    Log.d("MealPlanDebug", "Navigating to custom goal screen")
+                    navController.navigate("customGoal")
+                          },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Set Your Health Goal")
@@ -106,7 +124,7 @@ fun MealPlanScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { viewModel.saveCurrentMealPlan() },
+                onClick = { viewModel.saveCurrentMealPlan() }, // This triggers the save and sets the toast message
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
