@@ -1,7 +1,5 @@
 package com.example.mealplanapp.ui.theme.data2
 
-
-
 import android.content.Context
 import androidx.room.Room
 import dagger.Module
@@ -14,17 +12,28 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
+
     @Provides
-    @Singleton
-    fun provideMealPlanDatabase(
-        @ApplicationContext context: Context
-    ): MealPlanDatabase {
-        return MealPlanDatabase.getDatabase(context)
+    fun provideConverter(): Converters {
+        return Converters()
     }
 
     @Provides
     @Singleton
-    fun provideMealPlanDao(database: MealPlanDatabase): MealPlanDao {
-        return database.mealPlanDao()
+    fun provideMealPlanDatabase(
+        @ApplicationContext app: Context, converter: Converters
+    ): AppDatabase {
+        return Room.databaseBuilder(
+            app,
+            AppDatabase::class.java,
+            "meal_plan_database"
+        )
+            .addTypeConverter(converter)
+            .build()
+    }
+
+    @Provides
+    fun provideMealPlanDao(db: AppDatabase): MealPlanDao {
+        return db.getMealPlanDao()
     }
 }
