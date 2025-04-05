@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id ("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+   // id("com.google.dagger.hilt.android")
     id ("kotlin-parcelize")
     alias(libs.plugins.google.gms.google.services)
 }
@@ -77,8 +77,8 @@ dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.12.0")
     implementation ("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    implementation ("com.google.dagger:hilt-android:2.50")
-    kapt ("com.google.dagger:hilt-compiler:2.50")
+    //implementation ("com.google.dagger:hilt-android:2.50")
+   // kapt ("com.google.dagger:hilt-compiler:2.50")
     implementation ("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Serialization

@@ -19,7 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.mealplanapp.ui.theme.data.Meal
+import com.example.mealplanapp.data.entity.Meal
 
 
 @Composable

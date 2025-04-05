@@ -1,6 +1,5 @@
 package com.example.mealplanapp.ui.theme.screen.health.meal
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,13 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,27 +27,30 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.mealplanapp.di.DependencyContainer
 import com.example.mealplanapp.ui.theme.screen.health.HealthConditionViewModel
 import com.example.mealplanapp.ui.theme.screen.health.MealItemCard
-import dagger.hilt.android.lifecycle.HiltViewModel
 
 
 @Composable
 fun MealPlanScreen(
     navController: NavController,
-    viewModel: HealthConditionViewModel = hiltViewModel()
+    // Use the factory provided by your DI container
+    viewModel: HealthConditionViewModel = viewModel(factory = DependencyContainer.provideHealthConditionViewModelFactory())
 ) {
-    val mealPlan by viewModel.mealPlan
-    val customGoal by viewModel.customGoal
-    val toastMessage by viewModel.toastMessage // Observe the toast message state
+    // State collection remains the same
+    val meals by viewModel.allMeals.collectAsState() // Observe all meals if needed elsewhere
+    val currentBreakfast by viewModel.currentBreakfast
+    val currentLunch by viewModel.currentLunch
+    val currentSupper by viewModel.currentSupper
+    val toastMessage by viewModel.toastMessage
 
-// Get context for showing Toast
     val context = LocalContext.current
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            viewModel.clearToast() // Clear the message after showing
+            viewModel.toastMessage// Use a dedicated function to clear the message
         }
     }
 
@@ -69,73 +66,73 @@ fun MealPlanScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Your Meal Plan",
+                text = "Your Meal Plan", // This shows the plan managed by HealthConditionViewModel
                 style = MaterialTheme.typography.headlineLarge
             )
-
-            if (customGoal.isNotBlank()) {
-                FilterChip(
-                    selected = true,
-                    onClick = { navController.navigate("customGoal") },
-                    label = { (customGoal) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit goal"
-                        )
-                    }
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (customGoal.isBlank()) {
-            Text(
-                text = "No health goal set yet",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Button(
-                onClick = {
-                    Log.d("MealPlanDebug", "Navigating to custom goal screen")
-                    navController.navigate("customGoal")
-                          },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Set Your Health Goal")
-            }
-        } else {
-            // Display meal plan
-            MealItemCard("Breakfast", mealPlan.breakfast.first, mealPlan.breakfast.second)
-            MealItemCard("Lunch", mealPlan.lunch.first, mealPlan.lunch.second)
-            MealItemCard("Supper", mealPlan.supper.first, mealPlan.supper.second)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { viewModel.generateMealPlan() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Regenerate Meal Plan")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { viewModel.saveCurrentMealPlan() }, // This triggers the save and sets the toast message
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        // Display the meal plan currently held by HealthConditionViewModel
+        if (currentBreakfast != null || currentLunch != null || currentSupper != null) {
+            currentBreakfast?.let { meal ->
+                MealItemCard(
+                    time = "Breakfast",
+                    meal = meal.name,
+                    ingredients = meal.ingredients.joinToString(", ")
                 )
-            ) {
-                Text("Save This Meal Plan")
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            currentLunch?.let { meal ->
+                MealItemCard(
+                    time = "Lunch",
+                    meal = meal.name,
+                    ingredients = meal.ingredients.joinToString(", ")
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            currentSupper?.let { meal ->
+                MealItemCard(
+                    time = "Supper",
+                    meal = meal.name,
+                    ingredients = meal.ingredients.joinToString(", ")
+                )
+            }
+        } else if (meals.isEmpty()){
+            Text(
+                text = "Loading meals...", // Indicate loading or empty state
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+            )
+        }
+        else {
+            Text(
+                text = "No meal plan generated or saved yet.", // More accurate message
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+            )
+        }
+
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- MODIFIED BUTTON ---
+        Button(
+            onClick = {
+                // ONLY NAVIGATE to the screen where the user enters the goal
+                navController.navigate("customGoal")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // More descriptive text
+            Text("Generate New Meal Plan Based on Goal")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        // --- REMOVED SAVE BUTTON ---
+        // The "Save This Meal Plan" button is removed from here.
+        // Saving will happen on the CustomGoalInputScreen after generation.
 
         OutlinedButton(
             onClick = { navController.navigate("savedMeals") },

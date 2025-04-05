@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -11,12 +12,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-
-
-@HiltViewModel
-class AuthViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
-    private val auth: FirebaseAuth = Firebase.auth
-    private val firestore: FirebaseFirestore = Firebase.firestore
+class AuthViewModel(
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) : ViewModel() {  // Changed to regular ViewModel
 
     private val _signInState = mutableStateOf<AuthState>(AuthState.Idle)
     val signInState: State<AuthState> = _signInState
@@ -32,32 +31,10 @@ class AuthViewModel @Inject constructor(application: Application) : AndroidViewM
         dietaryPreferences: Set<String>,
         onComplete: () -> Unit = {}
     ) {
-
-        fun signIn(email: String, password: String, onComplete: () -> Unit = {}) {
-            _signInState.value = AuthState.Loading
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        _signInState.value = AuthState.Success
-                        onComplete()
-                    } else {
-                        _signInState.value = AuthState.Error(
-                            task.exception?.message ?: "Sign in failed"
-                        )
-                    }
-                }
-                .addOnFailureListener { e ->
-                    _signInState.value = AuthState.Error(
-                        e.message ?: "Network error occurred"
-                    )
-                }
-        }
-
         _signUpState.value = AuthState.Loading
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Save additional user data to Firestore or Room
                     val user = hashMapOf(
                         "name" to name,
                         "email" to email,
@@ -65,7 +42,7 @@ class AuthViewModel @Inject constructor(application: Application) : AndroidViewM
                         "dietaryPreferences" to dietaryPreferences.toList()
                     )
 
-                    Firebase.firestore.collection("users")
+                    firestore.collection("users")
                         .document(auth.currentUser?.uid ?: "")
                         .set(user)
                         .addOnSuccessListener {

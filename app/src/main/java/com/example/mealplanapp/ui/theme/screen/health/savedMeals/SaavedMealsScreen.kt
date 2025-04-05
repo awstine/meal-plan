@@ -1,6 +1,8 @@
 package com.example.mealplanapp.ui.theme.screen.health.savedMeals
 
-import android.text.format.DateUtils.formatDateTime
+import android.os.Build
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,34 +29,46 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.mealplanapp.ui.theme.data2.DateTimeUtils
-import com.example.mealplanapp.ui.theme.data2.DateTimeUtils.formatDateTime
-import com.example.mealplanapp.ui.theme.data2.SavedMealPlan
+import com.example.mealplanapp.data.converters.DateTimeUtils
+import com.example.mealplanapp.data.entity.MealPlanDetails
 import com.example.mealplanapp.ui.theme.screen.health.HealthConditionViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavedMealsScreen(
     navController: NavController,
-    viewModel: HealthConditionViewModel = hiltViewModel()
+    viewModel: HealthConditionViewModel = viewModel()
 ) {
-    val savedMealPlans by viewModel.allSavedMealPlans.collectAsState(initial = emptyList())
+    // Use collectAsStateWithLifecycle for better lifecycle management
+    val savedMealPlansDetails by viewModel.allSavedMealPlansWithDetails.collectAsStateWithLifecycle()
+    val context = LocalContext.current // Get context for Toast
+    val toastMessage by viewModel.toastMessage // Observe toast messages
+
+    // Show toast when message appears
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.toastMessage // Clear message after showing
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -68,7 +82,7 @@ fun SavedMealsScreen(
             )
         }
     ) { padding ->
-        if (savedMealPlans.isEmpty()) {
+        if (savedMealPlansDetails.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -82,12 +96,17 @@ fun SavedMealsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .padding(horizontal = 8.dp) // Add some horizontal padding
             ) {
-                items(savedMealPlans) { mealPlan ->
-                    SavedMealPlanItem(mealPlan) {
-                        viewModel.deleteMealPlan(mealPlan)
-                    }
-                    Divider()
+                items(savedMealPlansDetails, key = { it.savedMealPlan.id }) { mealPlanDetails ->
+                    SavedMealPlanItem(
+                        mealPlanDetails = mealPlanDetails, // Pass MealPlanDetails
+                        onDelete = {
+                            // Pass the SavedMealPlan part to the delete function
+                            viewModel.deleteMealPlan(mealPlanDetails.savedMealPlan)
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp)) // Space between cards
                 }
             }
         }
@@ -95,9 +114,10 @@ fun SavedMealsScreen(
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun SavedMealPlanItem(
-    mealPlan: SavedMealPlan,
+    mealPlanDetails: MealPlanDetails, // Accept MealPlanDetails
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -105,8 +125,8 @@ fun SavedMealPlanItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded }
-            .padding(8.dp),
+            .clickable { expanded = !expanded },
+        // .padding(vertical = 4.dp), // Padding moved to LazyColumn item spacing
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -116,7 +136,8 @@ fun SavedMealPlanItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = DateTimeUtils.formatDateTime(mealPlan.date),
+                    // Access date from the nested savedMealPlan
+                    text = DateTimeUtils.formatLocalDate(mealPlanDetails.savedMealPlan.date), // Make sure DateTimeUtils handles LocalDate
                     style = MaterialTheme.typography.titleMedium
                 )
                 IconButton(onClick = onDelete) {
@@ -124,16 +145,23 @@ fun SavedMealPlanItem(
                 }
             }
 
-            if (expanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                MealPlanDetail(
-                    breakfastName = mealPlan.breakfastName,
-                    breakfastIngredients = mealPlan.breakfastIngredients,
-                    lunchName = mealPlan.lunchName,
-                    lunchIngredients = mealPlan.lunchIngredients,
-                    supperName = mealPlan.supperName,
-                    supperIngredients = mealPlan.supperIngredients
-                )
+            // Use AnimatedVisibility for smoother expand/collapse
+            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+                Column { // Wrap details in a column for AnimatedVisibility
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider() // Add a divider
+                    Spacer(modifier = Modifier.height(12.dp))
+                    MealPlanDetail(
+                        // Safely access details from nullable Meal objects
+                        // Use elvis operator ?: to provide default empty strings
+                        breakfastName = mealPlanDetails.breakfast?.name ?: "N/A",
+                        breakfastIngredients = mealPlanDetails.breakfast?.ingredients?.joinToString(", ") ?: "-",
+                        lunchName = mealPlanDetails.lunch?.name ?: "N/A",
+                        lunchIngredients = mealPlanDetails.lunch?.ingredients?.joinToString(", ") ?: "-",
+                        supperName = mealPlanDetails.supper?.name ?: "N/A",
+                        supperIngredients = mealPlanDetails.supper?.ingredients?.joinToString(", ") ?: "-"
+                    )
+                }
             }
         }
     }
@@ -148,34 +176,52 @@ fun MealPlanDetail(
     supperName: String,
     supperIngredients: String
 ) {
-    Column {
-        Text("Breakfast", style = MaterialTheme.typography.bodyLarge)
-        Text(breakfastName, style = MaterialTheme.typography.bodyMedium)
-        IngredientsList(breakfastIngredients)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text("Lunch", style = MaterialTheme.typography.bodyLarge)
-        Text(lunchName, style = MaterialTheme.typography.bodyMedium)
-        IngredientsList(lunchIngredients)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text("Supper", style = MaterialTheme.typography.bodyLarge)
-        Text(supperName, style = MaterialTheme.typography.bodyMedium)
-        IngredientsList(supperIngredients)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { // Add spacing
+        MealDetailItem("Breakfast", breakfastName, breakfastIngredients)
+        MealDetailItem("Lunch", lunchName, lunchIngredients)
+        MealDetailItem("Supper", supperName, supperIngredients)
     }
 }
 
+// Helper composable for cleaner MealPlanDetail
 @Composable
-fun IngredientsList(ingredients: String) {
-    Text("Ingredients:", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-    Column(modifier = Modifier.padding(start = 8.dp)) {
-        ingredients.split(",").forEach { ingredient ->
-            Text(
-                text = "• ${ingredient.trim()}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 2.dp))
+fun MealDetailItem(mealType: String, name: String, ingredients: String) {
+    Column {
+        Text(mealType, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+        Text(name, style = MaterialTheme.typography.bodyMedium)
+        if (ingredients.isNotBlank() && ingredients != "-") {
+            IngredientsList(ingredients)
+        } else {
+            Text("Ingredients: -", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
+
+
+@Composable
+fun IngredientsList(ingredients: String) {
+    // Handle case where ingredients might be empty or just "-"
+    if (ingredients.isBlank() || ingredients == "-") {
+        Text("Ingredients: -", style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Column(modifier = Modifier.padding(top = 2.dp)) {
+        Text("Ingredients:", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold))
+        Column(modifier = Modifier.padding(start = 8.dp)) {
+            ingredients.split(",").forEach { ingredient ->
+                val trimmed = ingredient.trim()
+                if(trimmed.isNotEmpty()){ // Avoid displaying empty bullet points
+                    Text(
+                        text = "• $trimmed",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 1.dp) // Smaller padding
+                    )
+                }
+            }
+        }
+    }
+}
+
+// --- Add DateTimeUtils ---
+// Create DateTimeUtils.kt if needed
+// src/main/java/com/example/mealplanapp/data/converters/DateTimeUtils.kt

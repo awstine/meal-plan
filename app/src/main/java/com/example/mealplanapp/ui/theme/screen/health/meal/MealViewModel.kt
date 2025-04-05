@@ -2,8 +2,9 @@ package com.example.mealplanapp.ui.theme.screen.health.meal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mealplanapp.ui.theme.data.LocalMealDataSource
-import com.example.mealplanapp.ui.theme.data.Meal
+import com.example.mealplanapp.data.LocalMealDataSource
+import com.example.mealplanapp.data.dao.MealPlanDao
+import com.example.mealplanapp.data.entity.Meal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +13,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MealViewModel @Inject constructor(): ViewModel() {
+class MealViewModel @Inject constructor(
+    private val mealPlanDao: MealPlanDao
+): ViewModel() {
     private val _meals = MutableStateFlow<List<Meal>>(emptyList())
     val meals: StateFlow<List<Meal>> = _meals
 

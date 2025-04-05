@@ -1,236 +1,217 @@
 package com.example.mealplanapp.ui.theme.screen.health
 
-import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
+import androidx.compose.ui.geometry.isEmpty
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mealplanapp.ui.theme.data.MealPlan
-import com.example.mealplanapp.ui.theme.data2.AppDatabase
-import com.example.mealplanapp.ui.theme.data2.MealPlanDao
-import com.example.mealplanapp.ui.theme.data2.SavedMealPlan
+import com.example.mealplanapp.data.LocalMealDataSource
+import com.example.mealplanapp.data.dao.MealPlanDao
+import com.example.mealplanapp.data.entity.Meal
+import com.example.mealplanapp.data.entity.MealPlanDetails
+import com.example.mealplanapp.data.entity.SavedMealPlan
+import com.example.mealplanapp.data.repository.MealRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
+import java.time.LocalDate
 import javax.inject.Inject
 
 
-@HiltViewModel
-class HealthConditionViewModel @Inject constructor(
-    application: Application,
-    private val mealPlanDao: MealPlanDao // Inject the DAO
-) : AndroidViewModel(application) {
+class HealthConditionViewModel(
+    private val mealRepository: MealRepository,
+    private val savedMealPlanDao: MealPlanDao
+) : ViewModel() {
+    // --- States for Meals ---
+    private val _meals = mutableStateOf<List<Meal>>(emptyList())
+    val meals: State<List<Meal>> = _meals
 
-    private val _mealPlan = mutableStateOf(
-        MealPlan(
-            breakfast = "Loading..." to "Loading...",
-            lunch = "Loading..." to "Loading...",
-            supper = "Loading..." to "Loading..."
-        )
-    )
+    // --- State for the list of all available meals ---
+    private val _allMeals = MutableStateFlow<List<Meal>>(emptyList())
+    val allMeals: StateFlow<List<Meal>> = _allMeals.asStateFlow()
 
-    val mealPlan: State<MealPlan> = _mealPlan
-    //private val database = AppDatabase.getDatabase(application)
-    //private val mealPlanDao = database.mealPlanDao()
-    private val appContext = application.applicationContext
-    private val _toastMessage = mutableStateOf<String?>(null)
-    val toastMessage: State<String?> = _toastMessage
-    private val _customGoal = mutableStateOf("")
-    val customGoal: State<String> = _customGoal
+    // --- States for the CURRENTLY GENERATED meal plan ---
+    private val _currentBreakfast = mutableStateOf<Meal?>(null)
+    val currentBreakfast: State<Meal?> = _currentBreakfast
 
-    fun setCustomGoal(goal: String) {
-        _customGoal.value = goal
-        generateMealPlan() // Auto-generate when goal is set
-    }
+    private val _currentLunch = mutableStateOf<Meal?>(null)
+    val currentLunch: State<Meal?> = _currentLunch
 
-    fun generateMealPlan() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val meals = loadMealsFromCSV()
-                val goal = customGoal.value.lowercase()
+    private val _currentSupper = mutableStateOf<Meal?>(null)
+    val currentSupper: State<Meal?> = _currentSupper
 
-                _mealPlan.value = when {
-                    goal.contains("lose weight") || goal.contains("weight loss") ->
-                        generateWeightLossMealPlan(meals)
-                    goal.contains("gain weight") || goal.contains("weight gain") ->
-                        generateWeightGainMealPlan(meals)
-                    goal.contains("build muscle") || goal.contains("muscle gain") ->
-                        generateMuscleGainMealPlan(meals)
-                    else -> generateBalancedMealPlan(meals)
-                }
-            } catch (ioException: IOException) {
-                // Handle CSV loading errors
-                Log.e("MealPlanDebug", "Error loading CSV", ioException)
-                _mealPlan.value = MealPlan(
-                    breakfast = "Error loading meals" to "",
-                    lunch = "Error loading meals" to "",
-                    supper = "Error loading meals" to ""
-                )
-            } catch (e: Exception) {
-                // Handle other unexpected errors
-                Log.e("MealPlanDebug", "Unexpected error in generating meal plan", e)
-                _mealPlan.value = MealPlan(
-                    breakfast = "Error loading meals" to "",
-                    lunch = "Error loading meals" to "",
-                    supper = "Error loading meals" to ""
-                )
-            }
-        }
-    }
-
-
-// Similarly update other generation functions
-
-    init {
-        loadInitialMealPlan()
-    }
-
-    init {
-        generateMealPlan()
-    }
-
-    private fun loadInitialMealPlan() {
-        viewModelScope.launch(Dispatchers.IO) {
-            generateMealPlan()
-        }
-    }
-
-    private fun selectRandomMeal(
-        meals: Map<String, List<Pair<String, String>>>,
-        categories: List<String>
-    ): Pair<String, String> {
-        return categories.flatMap { meals[it] ?: emptyList() }.randomOrNull() ?: ("No meal found" to "")
-    }
-
-    fun generateWeightGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        return MealPlan(
-            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
-            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian")),
-            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
-        )
-    }
-
-    fun generateMuscleGainMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        return MealPlan(
-            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
-            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian")),
-            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
-        )
-    }
-
-    fun generateBalancedMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        return MealPlan(
-            breakfast = selectRandomMeal(meals, listOf("Bread", "Snack", "Beverage")),
-            lunch = selectRandomMeal(meals, listOf("Main Dish", "Vegetarian", "Salad")),
-            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood", "Staple"))
-        )
-    }
-    fun generateWeightLossMealPlan(meals: Map<String, List<Pair<String, String>>>): MealPlan {
-        return MealPlan(
-            breakfast = selectRandomMeal(meals, listOf("Snack", "Beverage")),
-            lunch = selectRandomMeal(meals, listOf("Vegetarian", "Salad")),
-            supper = selectRandomMeal(meals, listOf("Main Dish", "Seafood"))
-        )
-    }
-
-
-
-
-    private suspend fun loadMealsFromCSV(): Map<String, List<Pair<String, String>>> =
-        withContext(Dispatchers.IO) {
-            val mealCategories = mutableMapOf<String, MutableList<Pair<String, String>>>()
-
-            try {
-                appContext.assets.open("meal_plan.csv").use { inputStream ->
-                    BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                        reader.readLine() // Skip header
-
-                        reader.forEachLine { line ->
-                            val parts = line.split(",").map { it.trim() }
-                            if (parts.size >= 4) {
-                                val category = parts[2]
-                                val title = parts[1]
-                                val ingredients = parts[3] // Get ingredients column
-                                if (category.isNotEmpty() && title.isNotEmpty()) {
-                                    mealCategories.getOrPut(category) { mutableListOf() }
-                                        .add(title to ingredients)
-                                }
+    // --- State for saved meal plans (for SavedMealsScreen) ---
+    val allSavedMealPlansWithDetails: StateFlow<List<MealPlanDetails>> =
+        savedMealPlanDao.getAllSavedMealPlans()
+            .flatMapLatest { savedPlans ->
+                if (savedPlans.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    val mealIds =
+                        savedPlans.flatMap { listOf(it.breakfastId, it.lunchId, it.supperId) }
+                            .distinct()
+                    savedMealPlanDao.getMealsByIds(mealIds)
+                        .map { meals ->
+                            val mealsById = meals.associateBy { it.id }
+                            savedPlans.map { plan ->
+                                MealPlanDetails(
+                                    savedMealPlan = plan,
+                                    breakfast = mealsById[plan.breakfastId],
+                                    lunch = mealsById[plan.lunchId],
+                                    supper = mealsById[plan.supperId]
+                                )
                             }
                         }
-                    }
                 }
-            } catch (e: Exception) {
-                Log.e("MealPlanDebug", "Error loading CSV", e)
+            }
+            .catch { e ->
+                Log.e("ViewModel", "Error fetching saved meal plans with details", e)
+                emit(emptyList())
+                _toastMessage.value = "Error loading saved plans"
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    // --- Other States ---
+    private val _isLoading = mutableStateOf(false)
+    val isLoading: State<Boolean> = _isLoading
+
+    private val _toastMessage = mutableStateOf<String?>(null)
+    val toastMessage: State<String?> = _toastMessage
+
+
+
+    init {
+        // Load all meals once when ViewModel is created
+        loadAllMeals()
+    }
+
+    private fun loadAllMeals() {
+        viewModelScope.launch {
+            // Check if DB is empty before trying to insert defaults
+            val count = mealRepository.getMealCount() // Assumes this method exists in repo/DAO
+            Log.d("ViewModel", "Current meal count in DB: $count")
+            if (count == 0) {
+                Log.d("ViewModel", "Database is empty, attempting to insert default meals from CSV.")
+                insertDefaultMeals() // Load from CSV if empty
+            } else {
+                Log.d("ViewModel", "Database already contains meals, skipping default insertion.")
             }
 
-            return@withContext mealCategories
+            // Collect all meals from the DB into the state flow
+            Log.d("ViewModel", "Starting to collect all meals from repository.")
+            mealRepository.getAllMeals().collect { meals ->
+                _allMeals.value = meals
+                Log.d("ViewModel", "Collected ${meals.size} meals into _allMeals StateFlow.")
+                // Optionally generate an initial plan once meals are loaded *and* no plan exists
+                if (_currentBreakfast.value == null && _currentLunch.value == null && _currentSupper.value == null && meals.isNotEmpty()) {
+                    Log.d("ViewModel", "Generating initial random meal plan.")
+                    generateNewMealPlan() // The default random one
+                }
+            }
         }
+    }
 
+    private suspend fun insertDefaultMeals() {
+        val mealsFromCsv = mealRepository.loadMealsFromCSV()
+        if (mealsFromCsv.isNotEmpty()) {
+            Log.d("ViewModel", "Inserting ${mealsFromCsv.size} meals from CSV into database.")
+            // Ensure you have an insertAll method in your DAO and Repository for efficiency
+            mealRepository.insertMeals(mealsFromCsv)
+        } else {
+            // --- Fallback Removed ---
+            Log.w("ViewModel", "CSV file was empty or failed to load. No default meals inserted from LocalMealDataSource.")
+            // val mealsFromLocal = LocalMealDataSource.kenyanMeals
+            // if (mealsFromLocal.isNotEmpty()) {
+            //    Log.d("ViewModel", "Inserting ${mealsFromLocal.size} meals from LocalMealDataSource as fallback.")
+            //    mealRepository.insertMeals(mealsFromLocal)
+            // }
+        }
+    }
+    // --- Functions for CURRENT plan ---
 
-//    fun generateMealPlan() {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            try {
-//                val meals = loadMealsFromCSV()
-//
-//                _mealPlan.value = MealPlan(
-//                    breakfast = selectRandomMeals(meals, listOf("Bread", "Snack", "Beverage")),
-//                    lunch = selectRandomMeals(meals, listOf("Main Dish", "Vegetarian", "Salad")),
-//                    supper = selectRandomMeals(meals, listOf("Main Dish", "Seafood", "Staple"))
-//                )
-//            } catch (e: Exception) {
-//                Log.e("MealPlanDebug", "Error generating meal plan", e)
-//                _mealPlan.value = MealPlan(
-//                    breakfast = "Error loading meals" to "",
-//                    lunch = "Error loading meals" to "",
-//                    supper = "Error loading meals" to ""
-//                )
-//            }
-//        }
-//    }
+    fun generateNewMealPlan() { // This generates the RANDOM plan shown on MealPlanScreen initially
+        viewModelScope.launch {
+            val meals = _allMeals.value // Use meals loaded from DB
+            if (meals.isEmpty()) {
+                _toastMessage.value = "No meals available in database."
+                Log.w("ViewModel", "Cannot generate random plan, _allMeals is empty.")
+                return@launch
+            }
+            Log.d("ViewModel", "Generating random plan from ${meals.size} available meals.")
 
+            // Filter meals loaded FROM THE DATABASE (which originated from CSV)
+            val breakfastOptions = meals.filter { it.category.equals("Breakfast", ignoreCase = true) }
+            // Add more specific categories if your CSV uses them for Lunch/Supper
+            val lunchOptions = meals.filter { it.category.equals("Lunch", ignoreCase = true) || it.category.equals("Main Dish", ignoreCase = true) || it.category.equals("Staple", ignoreCase = true) || it.category.equals("Seafood", ignoreCase = true) || it.category.equals("Vegetarian", ignoreCase = true)}
+            val supperOptions = meals.filter { it.category.equals("Supper", ignoreCase = true) || it.category.equals("Dinner", ignoreCase = true) || it.category.equals("Main Dish", ignoreCase = true) || it.category.equals("Staple", ignoreCase = true) || it.category.equals("Seafood", ignoreCase = true) || it.category.equals("Vegetarian", ignoreCase = true)}
+
+            _currentBreakfast.value = if (breakfastOptions.isNotEmpty()) breakfastOptions.random() else null
+            _currentLunch.value = if (lunchOptions.isNotEmpty()) lunchOptions.random() else null
+            _currentSupper.value = if (supperOptions.isNotEmpty()) supperOptions.random() else null
+
+            if (_currentBreakfast.value == null || _currentLunch.value == null || _currentSupper.value == null) {
+                _toastMessage.value =
+                    "Could not generate a complete meal plan (missing categories?)."
+            }
+        }
+    }
+
+    // Updated save function - takes no parameters, uses current state
     fun saveCurrentMealPlan() {
-        viewModelScope.launch(Dispatchers.IO) {
+        val breakfast = _currentBreakfast.value
+        val lunch = _currentLunch.value
+        val supper = _currentSupper.value
+
+        // Ensure all parts of the plan exist before saving
+        if (breakfast == null || lunch == null || supper == null) {
+            _toastMessage.value = "Cannot save incomplete meal plan."
+            return
+        }
+
+        viewModelScope.launch {
             try {
-                val current = mealPlan.value
                 val savedMealPlan = SavedMealPlan(
-                    breakfastName = current.breakfast.first,
-                    breakfastIngredients = current.breakfast.second,
-                    lunchName = current.lunch.first,
-                    lunchIngredients = current.lunch.second,
-                    supperName = current.supper.first,
-                    supperIngredients = current.supper.second,
-                    date = System.currentTimeMillis()
+                    breakfastId = breakfast.id, // Use ID from the current Meal object
+                    lunchId = lunch.id,       // Use ID from the current Meal object
+                    supperId = supper.id,       // Use ID from the current Meal object
+                    date = LocalDate.now()
                 )
-                mealPlanDao.insert(savedMealPlan)
-                Log.d("MealPlanDebug", "Saved meal plan: $savedMealPlan")
-                showToast("Meal plan saved successfully!")
+                savedMealPlanDao.insertSavedMealPlan(savedMealPlan)
+                _toastMessage.value = "Meal plan saved successfully!"
             } catch (e: Exception) {
-                Log.e("MealPlanDebug", "Error saving meal plan", e)
-                showToast("Error saving meal plan")
+                Log.e("Saving", "Error saving meal plan", e)
+                _toastMessage.value = "Error saving meal plan: ${e.message}"
             }
         }
     }
 
-    val allSavedMealPlans: Flow<List<SavedMealPlan>> = mealPlanDao.getAllSavedMealPlans()
-
-    fun deleteMealPlan(mealPlan: SavedMealPlan) {
-        viewModelScope.launch(Dispatchers.IO) {
-            mealPlanDao.delete(mealPlan)
+    // --- Functions for SAVED plans (Deletion) ---
+    fun deleteMealPlan(savedMealPlan: SavedMealPlan) {
+        viewModelScope.launch {
+            try {
+                savedMealPlanDao.deleteSavedMealPlan(savedMealPlan)
+                _toastMessage.value = "Meal plan deleted."
+            } catch (e: Exception) {
+                Log.e("Deleting", "Error deleting meal plan", e)
+                _toastMessage.value = "Error deleting meal plan: ${e.message}"
+            }
         }
-    }
 
-    private fun showToast(message: String) {
-        _toastMessage.value = message
-    }
-
-    fun clearToast() {
-        _toastMessage.value = null
-    }
+        fun clearToast() {
+            _toastMessage.value = null
+        }
+        }
 }

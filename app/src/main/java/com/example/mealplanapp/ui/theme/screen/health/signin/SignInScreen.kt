@@ -57,6 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lint.kotlin.metadata.Visibility
 import com.example.mealplanapp.R
+import com.example.mealplanapp.di.DependencyContainer
 import com.example.mealplanapp.ui.theme.screen.health.AuthState
 import com.example.mealplanapp.ui.theme.screen.health.AuthViewModel
 
@@ -65,7 +66,7 @@ import com.example.mealplanapp.ui.theme.screen.health.AuthViewModel
 fun SignInScreen(
     onSignInComplete: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = viewModel(factory = DependencyContainer.provideAuthViewModelFactory())
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

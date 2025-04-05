@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
 
@@ -27,7 +28,7 @@ import androidx.navigation.NavController
 fun MealDetailScreen(
     navController: NavController,
     mealId: Int,
-    viewModel: MealViewModel = hiltViewModel()
+    viewModel: MealViewModel = viewModel()
 ) {
     val meal = viewModel.getMealById(mealId)
 
