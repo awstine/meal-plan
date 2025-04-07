@@ -5,7 +5,9 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.mealplanapp.data.entity.Meal
+import com.example.mealplanapp.data.entity.MealPlanWithMeals
 import com.example.mealplanapp.data.entity.SavedMealPlan
 import kotlinx.coroutines.flow.Flow
 
@@ -74,6 +76,15 @@ interface MealPlanDao {
 
     @Query("SELECT COUNT(*) FROM saved_meal_plan")
     suspend fun getSavedCount(): Int
+
+    @Transaction // Important for @Relation queries
+    @Query("SELECT * FROM saved_meal_plan ORDER BY date DESC")
+    fun getAllSavedMealPlansWithMeals(): Flow<List<MealPlanWithMeals>> // Change return type
+
+    // Keep getMealById if needed elsewhere
+//    @Query("SELECT * FROM meals WHERE id = :mealId")
+//    suspend fun getMealById(mealId: Int): Meal?
+
 
     // Remove unused or incorrect queries/relations
     // @Transaction
