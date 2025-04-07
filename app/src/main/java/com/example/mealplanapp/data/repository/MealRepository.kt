@@ -7,6 +7,7 @@ import android.content.Context
 import android.util.Log
 import com.example.mealplanapp.data.dao.MealPlanDao
 import com.example.mealplanapp.data.entity.Meal
+import com.example.mealplanapp.data.entity.MealPlanWithMeals
 import com.example.mealplanapp.data.entity.SavedMealPlan
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -126,6 +127,12 @@ class MealRepository constructor(
     fun getAllMeals(): Flow<List<Meal>> {
         return mealPlanDao.getAllMeals()
     }
+
+    fun getAllSavedMealPlansWithMeals(): Flow<List<MealPlanWithMeals>> {
+        // Simply call the corresponding DAO function
+        return mealPlanDao.getAllSavedMealPlansWithMeals()
+    }
+
 
     // Optional: Add if used by ViewModel
     suspend fun getMealCount(): Int {
