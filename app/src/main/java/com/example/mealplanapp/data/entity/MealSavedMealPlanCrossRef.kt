@@ -8,28 +8,28 @@ import androidx.room.Junction
 import androidx.room.Relation
 
 
-@Entity(
-    tableName = "meal_saved_meal_plan_cross_ref",
-    primaryKeys = ["savedMealPlanId", "mealId"],
-    foreignKeys = [
-        ForeignKey(
-            entity = SavedMealPlan::class,
-            parentColumns = ["id"],
-            childColumns = ["savedMealPlanId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = Meal::class,
-            parentColumns = ["id"],
-            childColumns = ["mealId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [
-        Index("savedMealPlanId"),
-        Index("mealId")
-    ]
-)
+//@Entity(
+//    tableName = "meal_saved_meal_plan_cross_ref",
+//    primaryKeys = ["savedMealPlanId", "mealId"],
+//    foreignKeys = [
+//        ForeignKey(
+//            entity = SavedMealPlan::class,
+//            parentColumns = ["id"],
+//            childColumns = ["savedMealPlanId"],
+//            onDelete = ForeignKey.CASCADE
+//        ),
+//        ForeignKey(
+//            entity = Meal::class,
+//            parentColumns = ["id"],
+//            childColumns = ["mealId"],
+//            onDelete = ForeignKey.CASCADE
+//        )
+//    ],
+//    indices = [
+//        Index("savedMealPlanId"),
+//        Index("mealId")
+//    ]
+//)
 
 data class MealSavedMealPlanCrossRef(
     val savedMealPlanId: Int,
