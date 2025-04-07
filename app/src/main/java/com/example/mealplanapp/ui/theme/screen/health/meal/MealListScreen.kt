@@ -23,7 +23,6 @@ import com.example.mealplanapp.data.entity.Meal
 
 
 @Composable
-@Preview
 fun MealListScreen(
     navController: NavController,
     meals: List<Meal>,
