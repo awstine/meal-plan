@@ -198,6 +198,7 @@ class HealthConditionViewModel(
         }
     }
 
+
     // --- Functions for SAVED plans (Deletion) ---
     fun deleteMealPlan(savedMealPlan: SavedMealPlan) {
         viewModelScope.launch {
