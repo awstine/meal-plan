@@ -74,21 +74,28 @@ data class MealPlanDetails(
     val supper: Meal?
 )
 
+//data class MealPlanWithMeals(
+//    @Embedded val mealPlan: SavedMealPlan,
+//    @Relation(
+//        parentColumn = "breakfastId",
+//        entityColumn = "id"
+//    )
+//    val breakfast: Meal?,
+//    @Relation(
+//        parentColumn = "lunchId",
+//        entityColumn = "id"
+//    )
+//    val lunch: Meal?,
+//    @Relation(
+//        parentColumn = "supperId",
+//        entityColumn = "id"
+//    )
+//    val supper: Meal?
+//)
+
 data class MealPlanWithMeals(
-    @Embedded val mealPlan: SavedMealPlan,
-    @Relation(
-        parentColumn = "breakfastId",
-        entityColumn = "id"
-    )
+    val mealPlan: SavedMealPlan,
     val breakfast: Meal?,
-    @Relation(
-        parentColumn = "lunchId",
-        entityColumn = "id"
-    )
     val lunch: Meal?,
-    @Relation(
-        parentColumn = "supperId",
-        entityColumn = "id"
-    )
     val supper: Meal?
 )
