@@ -55,20 +55,9 @@ import java.time.format.FormatStyle
 @Composable
 fun SavedMealsScreen(
     navController: NavController,
-    viewModel: HealthConditionViewModel = viewModel()
+    viewModel: HealthConditionViewModel = hiltViewModel()
 ) {
-    // Use collectAsStateWithLifecycle for better lifecycle management
-    val savedMealPlansDetails by viewModel.allSavedMealPlansWithDetails.collectAsStateWithLifecycle()
-    val context = LocalContext.current // Get context for Toast
-    val toastMessage by viewModel.toastMessage // Observe toast messages
-
-    // Show toast when message appears
-    LaunchedEffect(toastMessage) {
-        toastMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.toastMessage // Clear message after showing
-        }
-    }
+    val savedMealPlans by viewModel.allSavedMealPlansWithDetails.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -82,7 +71,7 @@ fun SavedMealsScreen(
             )
         }
     ) { padding ->
-        if (savedMealPlansDetails.isEmpty()) {
+        if (savedMealPlans.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -96,23 +85,18 @@ fun SavedMealsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 8.dp) // Add some horizontal padding
             ) {
-                items(savedMealPlansDetails, key = { it.savedMealPlan.id }) { mealPlanDetails ->
+                items(savedMealPlans) { plan ->
                     SavedMealPlanItem(
-                        mealPlanDetails = mealPlanDetails, // Pass MealPlanDetails
-                        onDelete = {
-                            // Pass the SavedMealPlan part to the delete function
-                            viewModel.deleteMealPlan(mealPlanDetails.savedMealPlan)
-                        }
+                        mealPlanDetails = plan,
+                        onDelete = { viewModel.deleteMealPlan(plan.savedMealPlan) }
                     )
-                    Spacer(modifier = Modifier.height(8.dp)) // Space between cards
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
     }
 }
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
