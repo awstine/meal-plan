@@ -13,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -96,84 +97,76 @@ class CustomGoalInputViewModel ( // Use constructor injection with Hilt
     }
 
     private fun generateMealPlan() {
-        // Reset state before starting generation
-        _state.value = state.value.copy(isLoading = true, generatedPlan = null, error = null, saveSuccess = false)
+        _state.value = state.value.copy(isLoading = true, generatedPlan = null, error = null)
 
         viewModelScope.launch {
             try {
-                // Load fresh meals each time or use preloaded ones (_allMeals.value)
-                val meals: List<Meal> = mealRepository.loadMealsFromCSV() // Or get from DB
-                Log.d("CustomGoalInputVM", "Loaded ${meals.size} meals for generation.")
+                val meals = mealRepository.getAllMeals().first() // Get from DB instead of CSV
+                Log.d("MealGeneration", "Total meals loaded: ${meals.size}")
 
                 if (meals.isEmpty()) {
                     _state.value = state.value.copy(
-                        error = CustomInputError.MealPlanGenerationFailed("No meals available in the database."),
+                        error = CustomInputError.MealPlanGenerationFailed("No meals available"),
                         isLoading = false
                     )
-                    Log.e("CustomGoalInputVM", "No meals loaded from repository.")
                     return@launch
                 }
+
+                // Debug: Log all available categories
+                val allCategories = meals.map { it.category }.distinct()
+                Log.d("MealGeneration", "Available categories: $allCategories")
 
                 val goal = _state.value.goal.lowercase().trim()
-                if (goal.isBlank()) {
+                val categories = when {
+                    goal.contains("lose weight") -> listOf("Breakfast", "Lunch", "Dinner", "Salad", "Vegetarian")
+                    goal.contains("gain muscle") -> listOf("Breakfast", "Lunch", "Dinner", "Main Dish", "Protein")
+                    else -> listOf("Breakfast", "Lunch", "Dinner", "Main Dish")
+                }
+
+                // Get meals for each type with fallback logic
+                val breakfast = findMealByType(meals, "Breakfast", categories)
+                val lunch = findMealByType(meals, "Lunch", categories)
+                    ?: findMealByType(meals, "Main Dish", categories) // Fallback
+                val supper = findMealByType(meals, "Dinner", categories)
+                    ?: findMealByType(meals, "Supper", categories)
+                    ?: findMealByType(meals, "Main Dish", categories) // Fallback
+
+                if (breakfast == null || lunch == null || supper == null) {
+                    val missing = listOfNotNull(
+                        if (breakfast == null) "Breakfast" else null,
+                        if (lunch == null) "Lunch" else null,
+                        if (supper == null) "Dinner/Supper" else null
+                    ).joinToString()
+
+                    Log.w("MealGeneration", "Missing meals for: $missing")
                     _state.value = state.value.copy(
-                        error = CustomInputError.MealPlanGenerationFailed("Please enter a health goal."),
+                        error = CustomInputError.MealPlanGenerationFailed("Couldn't find meals for: $missing"),
                         isLoading = false
                     )
                     return@launch
                 }
 
-
-                // Define categories based on goal
-                val categories = when {
-                    goal.contains("lose weight") || goal.contains("weight loss") ->
-                        listOf("Snack", "Beverage", "Vegetarian", "Salad", "Main Dish", "Seafood", "Breakfast", "Lunch", "Dinner", "Supper") // Be explicit
-                    goal.contains("gain weight") || goal.contains("weight gain") || goal.contains("build muscle") || goal.contains("muscle gain")->
-                        listOf("Bread", "Snack", "Beverage", "Main Dish", "Vegetarian", "Seafood", "Staple", "Breakfast", "Lunch", "Dinner", "Supper")
-                    else -> // Default or maintenance
-                        listOf("Bread", "Snack", "Beverage", "Main Dish", "Vegetarian", "Salad", "Seafood", "Staple", "Breakfast", "Lunch", "Dinner", "Supper")
-                }
-                Log.d("CustomGoalInputVM", "Using categories for goal '$goal': $categories")
-
-                // Select actual Meal objects
-                val breakfastSelection = selectRandomMeals(meals, categories, mealType = "Breakfast")
-                val lunchSelection = selectRandomMeals(meals, categories, mealType = "Lunch")
-                // Combine Supper/Dinner for flexibility
-                val supperSelection = selectRandomMeals(meals, categories, mealType = "Supper") +
-                        selectRandomMeals(meals, categories, mealType = "Dinner")
-
-
-                if (breakfastSelection.isEmpty() || lunchSelection.isEmpty() || supperSelection.isEmpty()) {
-                    Log.w("CustomGoalInputVM", "Could not find meals for all meal types. Breakfast: ${breakfastSelection.size}, Lunch: ${lunchSelection.size}, Supper/Dinner: ${supperSelection.size}")
-                    // Decide if partial plan is ok or show error
-                }
-
-                // Create the details object for the UI state
-                // Ensure uniqueness and take first if multiple found per type
-                val planDetails = GeneratedPlanDetails(
-                    breakfast = breakfastSelection.distinctBy { it.id }.take(1), // Take 1 breakfast
-                    lunch = lunchSelection.distinctBy { it.id }.take(1),       // Take 1 lunch
-                    supper = supperSelection.shuffled().distinctBy { it.id }.take(1) // Take 1 random supper/dinner
-                )
-
-
                 _state.value = state.value.copy(
-                    generatedPlan = planDetails, // Store the details object
-                    isLoading = false,
-                    error = null
+                    generatedPlan = GeneratedPlanDetails(
+                        breakfast = listOf(breakfast),
+                        lunch = listOf(lunch),
+                        supper = listOf(supper)
+                    ),
+                    isLoading = false
                 )
-
-                Log.i("CustomGoalInputVM", "Generated Meal Plan Details: Breakfast=${planDetails.breakfast.joinToString { it.name }}, Lunch=${planDetails.lunch.joinToString { it.name }}, Supper=${planDetails.supper.joinToString { it.name }}")
 
             } catch (e: Exception) {
-                Log.e("CustomGoalInputVM", "Error generating meal plan", e)
+                Log.e("MealGeneration", "Error", e)
                 _state.value = state.value.copy(
-                    error = CustomInputError.MealPlanGenerationFailed(e.message ?: "Unknown error during generation"),
+                    error = CustomInputError.MealPlanGenerationFailed(e.message ?: "Error"),
                     isLoading = false
                 )
             }
         }
     }
+
+
+
 
     // --- MODIFIED: Select random meals, optionally filtering by a specific meal type ---
     private fun selectRandomMeals(
@@ -199,54 +192,69 @@ class CustomGoalInputViewModel ( // Use constructor injection with Hilt
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O) // Keep if needed for LocalDate
+    @RequiresApi(Build.VERSION_CODES.O)
     fun saveCurrentMealPlan() {
         viewModelScope.launch {
-            val planDetails = state.value.generatedPlan // Get the GeneratedPlanDetails object
-            val breakfastMeal = planDetails?.breakfast?.firstOrNull() // Get the first (and likely only) Meal object
-            val lunchMeal = planDetails?.lunch?.firstOrNull()
-            val supperMeal = planDetails?.supper?.firstOrNull()
-
-            // --- VALIDATION ---
-            if (breakfastMeal == null || lunchMeal == null || supperMeal == null) {
-                Log.w("CustomGoalInputVM", "Attempted to save an incomplete meal plan. Breakfast: ${breakfastMeal?.id}, Lunch: ${lunchMeal?.id}, Supper: ${supperMeal?.id}")
+            val planDetails = state.value.generatedPlan ?: run {
                 _state.value = state.value.copy(
-                    error = CustomInputError.MealPlanGenerationFailed("Cannot save incomplete plan. Generate again."),
-                    saveSuccess = false // Ensure success is false
+                    error = CustomInputError.MealPlanGenerationFailed("No plan to save"),
+                    saveSuccess = false
                 )
                 return@launch
             }
 
-            val currentDate = LocalDate.now()
+            val breakfast = planDetails.breakfast.firstOrNull()
+            val lunch = planDetails.lunch.firstOrNull()
+            val supper = planDetails.supper.firstOrNull()
 
-            // --- Use IDs directly from the Meal objects ---
-            val mealToSave = SavedMealPlan(
-                date = currentDate,
-                breakfastId = breakfastMeal.id, // Use ID from the Meal object
-                lunchId = lunchMeal.id,       // Use ID from the Meal object
-                supperId = supperMeal.id        // Use ID from the Meal object
-            )
+            if (breakfast == null || lunch == null || supper == null) {
+                Log.w("MealSaving", "Null meals - B:${breakfast?.id}, L:${lunch?.id}, S:${supper?.id}")
+                _state.value = state.value.copy(
+                    error = CustomInputError.MealPlanGenerationFailed("Complete plan required"),
+                    saveSuccess = false
+                )
+                return@launch
+            }
 
             try {
-                mealRepository.insertSavedMealPlan(mealToSave)
-                Log.i("CustomGoalInputVM", "Saved meal plan successfully: $mealToSave")
-                // Update state to indicate success, clear error
+                // Ensure meals exist in DB first
+                mealRepository.insertMeal(breakfast)
+                mealRepository.insertMeal(lunch)
+                mealRepository.insertMeal(supper)
+
+                val savedPlan = SavedMealPlan(
+                    date = LocalDate.now(),
+                    breakfastId = breakfast.id,
+                    lunchId = lunch.id,
+                    supperId = supper.id
+                )
+
+                mealRepository.insertSavedMealPlan(savedPlan)
+                Log.i("MealSaving", "Saved plan: $savedPlan")
+
                 _state.value = state.value.copy(
                     error = null,
-                    saveSuccess = true // Set success flag
+                    saveSuccess = true
                 )
-            } catch(e: Exception) {
-                Log.e("CustomGoalInputVM", "Error saving meal plan to repository", e)
+            } catch (e: Exception) {
+                Log.e("MealSaving", "Error saving", e)
                 _state.value = state.value.copy(
-                    error = CustomInputError.MealPlanGenerationFailed("Failed to save meal plan: ${e.message}"),
+                    error = CustomInputError.MealPlanGenerationFailed("Save failed: ${e.message}"),
                     saveSuccess = false
                 )
             }
         }
     }
 
-    // Removed setCustomGoal and resetState as onEvent handles this
+
+    private fun findMealByType(meals: List<Meal>, type: String, allowedCategories: List<String>): Meal? {
+        return meals
+            .filter {
+                it.category.equals(type, ignoreCase = true) &&
+                        allowedCategories.any { cat -> it.category.equals(cat, ignoreCase = true) }
+            }
+            .shuffled()
+            .firstOrNull()
+            ?.also { Log.d("MealGeneration", "Found $type: ${it.name} (ID: ${it.id})") }
+    }
 }
-// Ensure MealPlan data class is defined somewhere accessible, e.g.:
-// package com.example.mealplanapp.data.model
-// data class MealPlan(val meals: List<Pair<String, String>>) // Example: List of (MealType, MealName(s))
