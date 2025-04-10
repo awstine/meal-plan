@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -71,8 +72,6 @@ fun SignInScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-
     val signInState by viewModel.signInState
 
     LaunchedEffect(signInState) {
@@ -84,29 +83,45 @@ fun SignInScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.Default.Home,
-            contentDescription = "Meal Plan App",
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        // App Logo/Icon
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "App Logo",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Welcome Back to Meal Planner",
-            style = MaterialTheme.typography.headlineSmall
+            text = "Welcome Back",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold
+            )
         )
 
         Text(
-            text = "Sign in to access your personalized meal plans",
+            text = "Sign in to continue your meal planning",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
+            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
         )
 
         OutlinedTextField(
@@ -114,8 +129,15 @@ fun SignInScreen(
             onValueChange = { email = it },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Email, null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Email,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            shape = MaterialTheme.shapes.medium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -125,12 +147,19 @@ fun SignInScreen(
             onValueChange = { password = it },
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Lock, null) },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Lock,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
 //                    Icon(
 //                        if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-//                        null
+//                        null,
+//                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
 //                    )
                 }
             },
@@ -139,7 +168,8 @@ fun SignInScreen(
             } else {
                 PasswordVisualTransformation()
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = MaterialTheme.shapes.medium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -153,16 +183,17 @@ fun SignInScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                viewModel.signIn(email, password)
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onClick = { viewModel.signIn(email, password) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             enabled = email.isNotBlank() &&
                     password.isNotBlank() &&
-                    signInState !is AuthState.Loading
+                    signInState !is AuthState.Loading,
+            shape = MaterialTheme.shapes.medium
         ) {
             if (signInState is AuthState.Loading) {
                 CircularProgressIndicator(
@@ -171,7 +202,10 @@ fun SignInScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Sign In")
+                Text(
+                    text = "Sign In",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
 
@@ -179,60 +213,22 @@ fun SignInScreen(
             Text(
                 text = (signInState as AuthState.Error).message,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 32.dp)
         ) {
-            Text("Don't have an account?")
+            Text(
+                text = "Don't have an account?",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
             TextButton(onClick = onNavigateToSignUp) {
                 Text("Sign Up")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Social login options
-        Text(
-            text = "Or sign in with",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-
-        Row(
-            modifier = Modifier.padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            IconButton(
-                onClick = {
-
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.githeri), // Add your own icon
-                    contentDescription = "Google",
-                    tint = Color.Unspecified
-                )
-            }
-
-            IconButton(
-                onClick = { /* Facebook sign in */ },
-                modifier = Modifier
-                    .size(48.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.chapati), // Add your own icon
-                    contentDescription = "Facebook",
-                    tint = Color.Unspecified
-                )
             }
         }
     }
