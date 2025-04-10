@@ -206,18 +206,22 @@ class CustomGoalInputViewModel ( // Use constructor injection with Hilt
             val breakfast = planDetails.breakfast.firstOrNull()
             val lunch = planDetails.lunch.firstOrNull()
             val supper = planDetails.supper.firstOrNull()
+            val currentGoal = state.value.goal // <-- Get the current goal
 
-            if (breakfast == null || lunch == null || supper == null) {
-                Log.w("MealSaving", "Null meals - B:${breakfast?.id}, L:${lunch?.id}, S:${supper?.id}")
+            if (breakfast == null || lunch == null || supper == null || currentGoal.isBlank()) { // <-- Also check if goal is blank
+                Log.w("MealSaving", "Null meals or empty goal - B:${breakfast?.id}, L:${lunch?.id}, S:${supper?.id}, Goal:'$currentGoal'")
                 _state.value = state.value.copy(
-                    error = CustomInputError.MealPlanGenerationFailed("Complete plan required"),
+                    // Slightly improved error message
+                    error = CustomInputError.MealPlanGenerationFailed(
+                        if (currentGoal.isBlank()) "Goal cannot be empty" else "Complete plan required"
+                    ),
                     saveSuccess = false
                 )
                 return@launch
             }
 
             try {
-                // Ensure meals exist in DB first
+                // Ensure meals exist in DB first (assuming this logic remains necessary)
                 mealRepository.insertMeal(breakfast)
                 mealRepository.insertMeal(lunch)
                 mealRepository.insertMeal(supper)
@@ -226,15 +230,18 @@ class CustomGoalInputViewModel ( // Use constructor injection with Hilt
                     date = LocalDate.now(),
                     breakfastId = breakfast.id,
                     lunchId = lunch.id,
-                    supperId = supper.id
+                    supperId = supper.id,
+                    goal = currentGoal // <-- SAVE THE GOAL HERE
                 )
 
                 mealRepository.insertSavedMealPlan(savedPlan)
-                Log.i("MealSaving", "Saved plan: $savedPlan")
+                Log.i("MealSaving", "Saved plan: $savedPlan") // Log includes the goal now
 
                 _state.value = state.value.copy(
                     error = null,
                     saveSuccess = true
+                    // Optional: Clear the generated plan after successful save?
+                    // generatedPlan = null
                 )
             } catch (e: Exception) {
                 Log.e("MealSaving", "Error saving", e)
