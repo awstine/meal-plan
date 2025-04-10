@@ -55,6 +55,14 @@ data class Meal(
    // val mealPlanId: Int? = null
 )
 
+data class NutritionInfo(
+    val calories: Int,
+    val protein: Int,
+    val carbs: Int,
+    val fat: Int,
+    val fiber: Int? = null // Optional field
+)
+
 
 @Entity(tableName = "saved_meal_plan")
 @TypeConverters(Converters::class) // Add TypeConverter for LocalDate
@@ -64,14 +72,17 @@ data class SavedMealPlan(
     val date: LocalDate, // Requires TypeConverter
     val breakfastId: Int,
     val lunchId: Int,
-    val supperId: Int
+    val supperId: Int,
+    val goal: String
+  //  val healthGoal: String? = null
 )
 
 data class MealPlanDetails(
     val savedMealPlan: SavedMealPlan,
     val breakfast: Meal?, // Nullable in case a meal was deleted
     val lunch: Meal?,
-    val supper: Meal?
+    val supper: Meal?,
+    val healthGoal: String? = null
 )
 
 //data class MealPlanWithMeals(
