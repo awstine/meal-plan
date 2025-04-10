@@ -108,12 +108,21 @@ fun SavedMealPlanItem(
 
     Card(
         modifier = Modifier
+            .padding(start = 12.dp, end = 12.dp)
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        // .padding(vertical = 4.dp), // Padding moved to LazyColumn item spacing
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+
+            // --- DISPLAY THE GOAL ---
+            Text(
+                // Access goal from the nested savedMealPlan object
+                text = "Goal: ${mealPlanDetails.savedMealPlan.goal}",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), // Make it stand out
+                modifier = Modifier.padding(bottom = 4.dp) // Add space below the goal
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -122,7 +131,7 @@ fun SavedMealPlanItem(
                 Text(
                     // Access date from the nested savedMealPlan
                     text = DateTimeUtils.formatLocalDate(mealPlanDetails.savedMealPlan.date), // Make sure DateTimeUtils handles LocalDate
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.bodyLarge // Adjusted style slightly for hierarchy
                 )
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete")
