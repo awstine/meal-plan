@@ -3,12 +3,14 @@
 package com.example.mealplanapp.ui.theme.screen.health.signup
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,107 +71,154 @@ fun SignUpScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Create Your Meal Plan Account",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Spacer(modifier = Modifier.height(40.dp))
 
-        // Profile Image Placeholder
+        // App Logo/Icon
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(80.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable { /* Handle image selection */ },
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "Profile picture",
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(48.dp)
+                contentDescription = "App Logo",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Personal Info Section
         Text(
-            text = "Personal Information",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.align(Alignment.Start)
+            text = "Create Your Account",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold
+            )
         )
 
+        Text(
+            text = "Start your personalized meal planning journey",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+        )
+
+        // Personal Info Section
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Full Name") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Person, null) }
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Person,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            shape = MaterialTheme.shapes.medium
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Email, null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Email,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            shape = MaterialTheme.shapes.medium
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Lock, null) },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Lock,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = MaterialTheme.shapes.medium
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             label = { Text("Confirm Password") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Lock, null) },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Lock,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = MaterialTheme.shapes.medium
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Health Goals
+        OutlinedTextField(
+            value = healthGoals,
+            onValueChange = { healthGoals = it },
+            label = { Text("Health Goals (optional)") },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Favorite,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            shape = MaterialTheme.shapes.medium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Health Goals Section
         Text(
-            text = "Health & Dietary Preferences",
-            style = MaterialTheme.typography.titleMedium,
+            text = "Dietary Preferences",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
             modifier = Modifier.align(Alignment.Start)
         )
 
-        OutlinedTextField(
-            value = healthGoals,
-            onValueChange = { healthGoals = it },
-            label = { Text("Health Goals (e.g., Weight loss, Muscle gain)") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Favorite, null) }
-        )
-
-        Text(
-            text = "Dietary Preferences",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(top = 8.dp, bottom = 4.dp)
-        )
+        Spacer(modifier = Modifier.height(8.dp))
 
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             dietaryOptions.forEach { option ->
                 val isSelected = option in dietaryPreferences
@@ -182,8 +233,19 @@ fun SignUpScreen(
                     },
                     label = { Text(option) },
                     leadingIcon = if (isSelected) {
-                        { Icon(Icons.Default.Check, null) }
-                    } else null
+                        {
+                            Icon(
+                                Icons.Default.Check,
+                                null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    } else null,
+                    shape = MaterialTheme.shapes.small,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
             }
         }
@@ -195,16 +257,34 @@ fun SignUpScreen(
                 viewModel.signUp(name, email, password, healthGoals, dietaryPreferences)
                 onSignUpComplete()
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && password == confirmPassword
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            enabled = name.isNotBlank() &&
+                    email.isNotBlank() &&
+                    password.isNotBlank() &&
+                    password == confirmPassword,
+            shape = MaterialTheme.shapes.medium
         ) {
-            Text("Sign Up")
+            Text(
+                text = "Create Account",
+                style = MaterialTheme.typography.labelLarge
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = onNavigateToSignIn) {
-            Text("Already have an account? Sign In")
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Already have an account?",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            TextButton(onClick = onNavigateToSignIn) {
+                Text("Sign In")
+            }
         }
     }
 }
