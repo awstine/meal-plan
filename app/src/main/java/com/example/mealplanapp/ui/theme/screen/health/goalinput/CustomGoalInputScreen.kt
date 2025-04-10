@@ -1,9 +1,11 @@
 package com.example.mealplanapp.ui.theme.screen.health.goalinput
 
+
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -31,37 +33,38 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.mealplanapp.data.model.MealPlan
-import com.example.mealplanapp.ui.theme.screen.health.MealItemCard
-// ... other imports ...
-import androidx.lifecycle.viewmodel.compose.viewModel // Use the standard viewModel function
-// import androidx.hilt.navigation.compose.hiltViewModel // REMOVE Hilt import
-import com.example.mealplanapp.di.DependencyContainer // Import your container
+import com.example.mealplanapp.di.DependencyContainer
 import com.example.mealplanapp.ui.theme.screen.health.MealItemCard
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CustomGoalInputScreen(
     navController: NavController,
-    // Use standard viewModel() with the factory from DependencyContainer
     viewModel: CustomGoalInputViewModel = viewModel(
         factory = DependencyContainer.provideCustomGoalInputViewModelFactory()
     ),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-    // The rest of the Composable function remains the same...
     val state by viewModel.state.collectAsStateWithLifecycle(lifecycleOwner)
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
-    LaunchedEffect(state.error, state.saveSuccess) {
-        // ... Toast logic remains the same ...
+    LaunchedEffect(state.saveSuccess) {
+        if (state.saveSuccess) {
+            Toast.makeText(
+                context,
+                "Meal plan saved successfully!",
+                Toast.LENGTH_SHORT
+            ).show()
+            // Reset the save success state
+            viewModel.onEvent(CustomInputEvent.ResetSaveStatus)
+        }
     }
+
 
     Column(
         modifier = Modifier
@@ -109,8 +112,13 @@ fun CustomGoalInputScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
+            modifier = Modifier.fillMaxWidth(),
             onClick = {
                 focusManager.clearFocus()
+                if (state.goal.isBlank()) {
+                    Toast.makeText(context, "Please enter a goal", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
                 Log.d("CustomGoalInputDebug", "Generate button clicked with goal: ${state.goal}")
                 viewModel.onEvent(CustomInputEvent.Submit)
             },
@@ -119,34 +127,53 @@ fun CustomGoalInputScreen(
             Text("Generate Meal Plan")
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // --- Display Area ---
         if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(vertical = 16.dp))
         } else if (state.generatedPlan != null) {
             DisplayMealPlan(planDetails = state.generatedPlan!!)
+
             Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { viewModel.saveCurrentMealPlan() },
-                // ... rest of save button ...
+        }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Save This Meal Plan")
+                Button(
+                    onClick = { viewModel.saveCurrentMealPlan() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.generatedPlan != null // Enable only if a plan is generated
+                    // ... rest of save button ...
+                ) {
+                    Text("Save This Meal Plan")
+                }
+
+                // Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { navController.navigate("savedMeals") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("View Saved Meals")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(onClick = { navController.popBackStack() }) {
+                    Text("Back")
+                }
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedButton(onClick = { navController.popBackStack() }) {
-            Text("Back")
-        }
     }
 }
 
 // DisplayMealPlan Composable remains the same
 
 @Composable
-fun DisplayMealPlan(planDetails: GeneratedPlanDetails) { // Accept GeneratedPlanDetails
+fun DisplayMealPlan(
+    planDetails: GeneratedPlanDetails
+) { // Accept GeneratedPlanDetails
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Generated Plan Suggestion:",
