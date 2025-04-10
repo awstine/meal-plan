@@ -20,13 +20,16 @@ import com.example.mealplanapp.ui.theme.screen.health.HealthConditionViewModel
 import com.example.mealplanapp.ui.theme.screen.health.category.CategoryScreen
 import com.example.mealplanapp.ui.theme.screen.health.goalinput.CustomGoalInputScreen
 import com.example.mealplanapp.ui.theme.screen.health.goalinput.CustomGoalInputViewModel
+import com.example.mealplanapp.ui.theme.screen.health.insightDashboard.InsightsScreen
 import com.example.mealplanapp.ui.theme.screen.health.meal.MealDetailScreen
 import com.example.mealplanapp.ui.theme.screen.health.meal.MealListScreen
 import com.example.mealplanapp.ui.theme.screen.health.meal.MealPlanScreen
 import com.example.mealplanapp.ui.theme.screen.health.meal.MealViewModel
+import com.example.mealplanapp.ui.theme.screen.health.personalised.PersonalizationScreen
 import com.example.mealplanapp.ui.theme.screen.health.savedMeals.SavedMealsScreen
 import com.example.mealplanapp.ui.theme.screen.health.signin.SignInScreen
 import com.example.mealplanapp.ui.theme.screen.health.signup.SignUpScreen
+import com.example.mealplanapp.ui.theme.screen.health.welcome.WelcomeScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 
@@ -40,7 +43,8 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "signUp"
+                    startDestination = "welcome" +
+                            ""
                 ) {
                     // Authentication Flow
                     composable("signIn") {
@@ -154,6 +158,9 @@ class MainActivity : ComponentActivity() {
                             viewModel = healthViewModel // Pass the correctly created ViewModel
                         )
                     }
+                    composable("welcome") { WelcomeScreen(navController) }
+                    composable("insights") { InsightsScreen(navController) }
+                    composable("personalization") { PersonalizationScreen(navController) }
                 }
             }
         }
