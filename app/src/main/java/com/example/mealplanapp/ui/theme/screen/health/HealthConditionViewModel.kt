@@ -187,7 +187,8 @@ class HealthConditionViewModel(
                     breakfastId = breakfast.id, // Use ID from the current Meal object
                     lunchId = lunch.id,       // Use ID from the current Meal object
                     supperId = supper.id,       // Use ID from the current Meal object
-                    date = LocalDate.now()
+                    date = LocalDate.now(),
+                    goal = "Your health goal here" // Replace with actual goal if needed
                 )
                 savedMealPlanDao.insertSavedMealPlan(savedMealPlan)
                 _toastMessage.value = "Meal plan saved successfully!"
