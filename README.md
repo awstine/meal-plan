@@ -30,6 +30,12 @@
 2. Open the project in your preferred Kotlin IDE.
 3. Build and run the application.
 
+## Screenshots
+  <img src="https://github.com/user-attachments/assets/ddf50cbb-1208-4dff-899f-b18828bea225" width="300" height="600">  
+ <img src="https://github.com/user-attachments/assets/d625cbd8-da83-40e0-ab80-7655662e630d" width="300" height="600">  
+  <img src="https://github.com/user-attachments/assets/dbb344d5-f034-4ce2-9369-a4c276069273" width="300" height="600"> 
+
+
 ## Usage
 
 1. Launch the application.
