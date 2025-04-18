@@ -31,9 +31,14 @@
 3. Build and run the application.
 
 ## Screenshots
-  <img src="https://github.com/user-attachments/assets/ddf50cbb-1208-4dff-899f-b18828bea225" width="300" height="600">  
- <img src="https://github.com/user-attachments/assets/d625cbd8-da83-40e0-ab80-7655662e630d" width="300" height="600">  
-  <img src="https://github.com/user-attachments/assets/dbb344d5-f034-4ce2-9369-a4c276069273" width="300" height="600"> 
+<img src="https://github.com/user-attachments/assets/ddf50cbb-1208-4dff-899f-b18828bea225" width="300" height="600">  
+<img src="https://github.com/user-attachments/assets/d625cbd8-da83-40e0-ab80-7655662e630d" width="300" height="600">  
+<img src="https://github.com/user-attachments/assets/dbb344d5-f034-4ce2-9369-a4c276069273" width="300" height="600"> 
+<img src="https://github.com/user-attachments/assets/d64172f3-c2d7-4aba-bfa3-3861e65013e8" width="300" height="600"> 
+<img src="https://github.com/user-attachments/assets/fc588912-a00f-429e-a2d5-1671916486f2" width="300" height="600"> 
+<img src="https://github.com/user-attachments/assets/bd5eea57-f64e-4fc5-9568-2f65f7fe9810" width="300" height="600"> 
+
+[Uploading Screen_recording_20250418_100238.webm…]()
 
 
 ## Usage
